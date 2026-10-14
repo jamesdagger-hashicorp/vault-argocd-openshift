@@ -1,0 +1,12 @@
+apiVersion: v2
+
+name: vault-platform
+description: HashiCorp Vault Enterprise on OpenShift (wrapper chart around the official hashicorp/vault chart)
+type: application
+
+version: 0.1.0
+
+dependencies:
+  - name: vault
+    repository: https://helm.releases.hashicorp.com
+    version: "0.34.1"

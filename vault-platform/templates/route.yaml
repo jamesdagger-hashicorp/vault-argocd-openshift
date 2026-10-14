@@ -1,0 +1,20 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  host: {{ include "vault-platform.filled" (list "platform.route.host" .Values.platform.route.host) }}
+
+  to:
+    kind: Service
+    name: {{ .Release.Name }}-active
+    weight: 100
+
+  port:
+    targetPort: https
+
+  tls:
+    termination: passthrough
+
+  wildcardPolicy: None

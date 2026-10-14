@@ -42,3 +42,18 @@ terraform.rc
 # Optional: ignore plan files saved before destroying Terraform configuration
 # Uncomment the line below if you want to ignore planout files.
 # planout
+
+# Local test scaffolding: never commit or hand over
+simulation/
+
+# Licence and secrets: never commit
+*.hclic
+*.hclic.*
+vault-license*
+local-init*
+*.pem
+*.key
+
+# Build output (remove the charts/ line if you vendor the dependency)
+vault-platform/charts/
+rendered/

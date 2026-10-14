@@ -1,0 +1,22 @@
+# DEV: namespace "vault-dev"
+platform:
+  route:
+    host: vault-dev.apps.<CLUSTER_APPS_DOMAIN>
+
+vault:
+  server:
+    # Sized to fit the vault-dev quota in docs/installation.md, for 3 pods:
+    #   requests.cpu 500m, requests.memory 4Gi, limits.cpu 2, limits.memory 4Gi
+    # Memory request = limit, so pods are not evicted first under node pressure. CPU is
+    # burstable because the requests.cpu quota (500m) is lower than the limits.cpu quota (2).
+    # If the requests.cpu quota allows 2, use 500m request = limit instead.
+    resources:
+      requests:
+        memory: 1Gi      # x3 = 3Gi
+        cpu: 150m        # x3 = 450m
+      limits:
+        memory: 1Gi      # x3 = 3Gi
+        cpu: 600m        # x3 = 1800m
+    # 3 x 5Gi data volumes (15Gi of the 30Gi quota). Audit goes to stdout, so no audit volumes.
+    dataStorage:
+      size: 5Gi

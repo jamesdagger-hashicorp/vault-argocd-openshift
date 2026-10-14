@@ -1,0 +1,21 @@
+# PROD: namespace "vault"
+platform:
+  route:
+    host: vault.apps.<CLUSTER_APPS_DOMAIN>
+
+vault:
+  server:
+    # HashiCorp's small-cluster sizing (Vault on Kubernetes deployment guide and the
+    # integrated storage reference architecture), for 3 pods.
+    # Needs the minimum vault quota in docs/installation.md.
+    resources:
+      requests:
+        memory: 8Gi      # x3 = 24Gi
+        cpu: 2000m       # x3 = 6
+      limits:
+        memory: 16Gi     # x3 = 48Gi
+        cpu: 2000m       # x3 = 6
+    # Reference architecture minimum is 100+ GB per node. 3 x 100Gi = 300Gi.
+    # Audit goes to stdout, so no audit volumes.
+    dataStorage:
+      size: 100Gi

@@ -1,0 +1,24 @@
+{{- /*
+  Replaces the upstream ClusterRoleBinding (disabled in values.yaml). Upstream names it after
+  the release, so DEV and PROD (both release "vault" on one cluster) would render the same
+  cluster-scoped object. Naming it after the namespace keeps them apart:
+  vault-dev-server-binding in DEV, vault-server-binding in PROD.
+  Lets Vault's Kubernetes auth method call the TokenReview API.
+  Assumes the upstream service account name, which equals the release name "vault".
+  Cluster-scoped: set platform.authDelegator.enabled=false if ArgoCD may not create it, and
+  have a cluster admin create it instead (see docs/installation.md).
+*/ -}}
+{{- if .Values.platform.authDelegator.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Namespace }}-server-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

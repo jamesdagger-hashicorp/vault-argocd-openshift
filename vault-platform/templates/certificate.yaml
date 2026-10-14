@@ -1,0 +1,49 @@
+{{- /*
+  TLS certificate for the Vault listener (Route is passthrough, so Vault terminates TLS itself).
+  SANs cover: the Route host, the Services, and every pod's Raft peer name, in short and
+  namespaced forms. Namespace comes from the release, so DEV and PROD never share names.
+  Assumes release name "vault" (see values.yaml).
+*/ -}}
+{{- $name := .Release.Name }}
+{{- $ns := .Release.Namespace }}
+{{- $replicas := int .Values.vault.server.ha.replicas }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $name }}-tls
+  namespace: {{ $ns }}
+spec:
+  secretName: {{ .Values.platform.certificate.secretName }}
+  duration: {{ .Values.platform.certificate.duration }}
+  renewBefore: {{ .Values.platform.certificate.renewBefore }}
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always
+  usages:
+    - server auth
+    - client auth
+  issuerRef:
+    name: {{ include "vault-platform.filled" (list "platform.certificate.issuerRef.name" .Values.platform.certificate.issuerRef.name) }}
+    kind: {{ include "vault-platform.filled" (list "platform.certificate.issuerRef.kind" .Values.platform.certificate.issuerRef.kind) }}
+    group: {{ .Values.platform.certificate.issuerRef.group }}
+  dnsNames:
+    - {{ include "vault-platform.filled" (list "platform.route.host" .Values.platform.route.host) | quote }}
+    - localhost
+    {{- range $svc := list $name (printf "%s-active" $name) (printf "%s-standby" $name) (printf "%s-internal" $name) }}
+    - {{ $svc }}
+    - {{ $svc }}.{{ $ns }}
+    - {{ $svc }}.{{ $ns }}.svc
+    - {{ $svc }}.{{ $ns }}.svc.cluster.local
+    {{- end }}
+    {{- range $i := until $replicas }}
+    - {{ $name }}-{{ $i }}.{{ $name }}-internal
+    - {{ $name }}-{{ $i }}.{{ $name }}-internal.{{ $ns }}
+    - {{ $name }}-{{ $i }}.{{ $name }}-internal.{{ $ns }}.svc
+    - {{ $name }}-{{ $i }}.{{ $name }}-internal.{{ $ns }}.svc.cluster.local
+    {{- end }}
+    {{- range .Values.platform.certificate.extraDnsNames }}
+    - {{ include "vault-platform.filled" (list "platform.certificate.extraDnsNames" .) | quote }}
+    {{- end }}
+  ipAddresses:
+    - 127.0.0.1

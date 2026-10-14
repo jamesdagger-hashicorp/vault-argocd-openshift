@@ -1,0 +1,119 @@
+# Base values, shared by every environment.
+# Environment differences live in values-dev.yaml / values-prod.yaml.
+# Everything under `vault:` is passed to the upstream hashicorp/vault chart.
+#
+# Placeholders in <ANGLE_BRACKETS> must be filled in before deployment (see docs/installation.md).
+#
+# ASSUMPTION: the Helm release name is "vault" in both namespaces. The Raft retry_join
+# addresses and the Certificate SANs below depend on it (pods are vault-0..N,
+# headless service is vault-internal). If the release name changes, change those too.
+
+platform:
+  route:
+    # Set per environment.
+    host: ""
+  certificate:
+    secretName: vault-tls
+    # Existing cert-manager issuer. Discovery item.
+    issuerRef:
+      name: <ISSUER_NAME>
+      kind: <Issuer|ClusterIssuer>
+      group: cert-manager.io
+    duration: 2160h     # 90d
+    renewBefore: 360h   # 15d
+    # Extra SANs, if any (for example an internal DNS alias).
+    extraDnsNames: []
+  # ClusterRoleBinding <namespace>-server-binding to system:auth-delegator, used by Vault's
+  # Kubernetes auth method. Cluster-scoped: set to false if ArgoCD may not create
+  # cluster-scoped objects, and have a cluster admin create it (see docs/installation.md).
+  authDelegator:
+    enabled: true
+
+vault:
+  global:
+    openshift: true
+    tlsDisable: false
+
+  injector:
+    enabled: false
+
+  server:
+    image:
+      repository: docker.io/hashicorp/vault-enterprise
+      tag: "2.1-ent"   # consider pinning a patch tag or digest for PROD
+
+    # Pre-existing Secret holding the license. Not created by this chart; see docs/installation.md.
+    enterpriseLicense:
+      secretName: vault-license
+      secretKey: license
+
+    extraEnvironmentVars:
+      VAULT_CACERT: /vault/userconfig/vault-tls/ca.crt
+
+    # Certificate Secret created by templates/certificate.yaml
+    volumes:
+      - name: vault-tls
+        secret:
+          secretName: vault-tls
+    volumeMounts:
+      - name: vault-tls
+        mountPath: /vault/userconfig/vault-tls
+        readOnly: true
+
+    # The Route lives in this chart (templates/route.yaml), not in the upstream chart.
+    route:
+      enabled: false
+
+    # The auth-delegator ClusterRoleBinding lives in this chart (templates/auth-delegator.yaml,
+    # switched by platform.authDelegator), named per namespace so DEV and PROD do not clash.
+    # Keep this false.
+    authDelegator:
+      enabled: false
+
+    dataStorage:
+      enabled: true
+      size: 10Gi
+      storageClass: null   # cluster default unless overridden
+
+    auditStorage:
+      enabled: false
+
+    ha:
+      enabled: true
+      replicas: 3
+      raft:
+        enabled: true
+        setNodeId: true
+        config: |
+          ui = true
+          disable_mlock = true
+
+          listener "tcp" {
+            address         = "[::]:8200"
+            cluster_address = "[::]:8201"
+            tls_cert_file   = "/vault/userconfig/vault-tls/tls.crt"
+            tls_key_file    = "/vault/userconfig/vault-tls/tls.key"
+            tls_client_ca_file = "/vault/userconfig/vault-tls/ca.crt"
+          }
+
+          storage "raft" {
+            path = "/vault/data"
+
+            retry_join {
+              leader_api_addr     = "https://vault-0.vault-internal:8200"
+              leader_ca_cert_file = "/vault/userconfig/vault-tls/ca.crt"
+            }
+            retry_join {
+              leader_api_addr     = "https://vault-1.vault-internal:8200"
+              leader_ca_cert_file = "/vault/userconfig/vault-tls/ca.crt"
+            }
+            retry_join {
+              leader_api_addr     = "https://vault-2.vault-internal:8200"
+              leader_ca_cert_file = "/vault/userconfig/vault-tls/ca.crt"
+            }
+          }
+
+          service_registration "kubernetes" {}
+
+          # SEAL: no seal stanza yet, so Vault uses Shamir keys (manual unseal).
+          # Auto-unseal is not yet chosen. Add the stanza here.
