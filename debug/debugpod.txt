@@ -6,7 +6,7 @@ metadata:
 spec:
   containers:
   - name: vault
-    image: $(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers.image}')
+    image: hashicorp/vault-enterprise:2.1-ent
     command: ["/bin/sh", "-c", "sleep infinity"]
     resources:
       requests:
