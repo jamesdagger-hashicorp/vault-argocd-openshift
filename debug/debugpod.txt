@@ -6,8 +6,15 @@ metadata:
 spec:
   containers:
   - name: vault
-    image: image-registry.openshift-image-registry.svc:5000/openshift/vault:latest
+    image: $(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].image}')
     command: ["/bin/sh", "-c", "sleep infinity"]
+    resources:
+      requests:
+        cpu: "$(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].resources.requests.cpu}')"
+        memory: "$(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].resources.requests.memory}')"
+      limits:
+        cpu: "$(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].resources.limits.cpu}')"
+        memory: "$(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].resources.limits.memory}')"
     volumeMounts:
     - name: data
       mountPath: /vault/data
