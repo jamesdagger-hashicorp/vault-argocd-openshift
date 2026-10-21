@@ -6,15 +6,15 @@ metadata:
 spec:
   containers:
   - name: vault
-    image: $(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].image}')
+    image: $(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers.image}')
     command: ["/bin/sh", "-c", "sleep infinity"]
     resources:
       requests:
-        cpu: "$(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].resources.requests.cpu}')"
-        memory: "$(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].resources.requests.memory}')"
+        cpu: "50m"
+        memory: "64Mi"
       limits:
-        cpu: "$(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].resources.limits.cpu}')"
-        memory: "$(oc get sts vault-dev -o jsonpath='{.spec.template.spec.containers[0].resources.limits.memory}')"
+        cpu: "150m"
+        memory: "256Mi"
     volumeMounts:
     - name: data
       mountPath: /vault/data
