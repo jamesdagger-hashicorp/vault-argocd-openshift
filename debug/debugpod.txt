@@ -1,0 +1,17 @@
+cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vault-inspector
+spec:
+  containers:
+  - name: vault
+    image: image-registry.openshift-image-registry.svc:5000/openshift/vault:latest
+    command: ["/bin/sh", "-c", "sleep infinity"]
+    volumeMounts:
+    - name: data
+      mountPath: /vault/data
+  volumes:
+  - name: data
+    emptyDir: {}
+EOF
