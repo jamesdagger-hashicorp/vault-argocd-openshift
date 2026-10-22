@@ -100,7 +100,7 @@ vault:
             path = "/vault/data"
 
             retry_join {
-                leader_api_addr = "https://{{ include "vault.fullname" . }}-0.{{ include "vault.fullname" . }}-internal:8200"
+              leader_api_addr = "https://{{ include "vault.fullname" . }}-0.{{ include "vault.fullname" . }}-internal:8200"
               leader_ca_cert_file = "/vault/userconfig/vault-tls/ca.crt"
             }
             retry_join {
